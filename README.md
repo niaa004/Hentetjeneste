@@ -1,29 +1,59 @@
-# User Greeting
+# Hentetjeneste (User Greeting)
 
-This is a code bundle for User Greeting. The original project is available at https://www.figma.com/design/seOfvjNHV9hwgz67wzwVUK/User-Greeting.
+Hentetjeneste is a small web application for kindergarten pickup that demonstrates using Supabase (Auth, Database, RLS) as a backend with a React + Vite frontend. The app supports:
 
-## Running the code
+- Check-in/check-out logging for children (attendance)
+- Role-based access control (parent/staff/admin) using RLS
+- Approved persons for pickups
+- Messaging between staff and parents
+- Daily information (menu, activities) and incident logging
 
-Run `npm i` to install the dependencies.
+This repository contains the frontend, database migrations (for Supabase), and supporting scripts and documentation.
 
-Run `npm run dev` to start the development server.
+## Quick start (development)
+1. Copy `.env.example` to `.env` and fill in the keys:
+  - `VITE_SUPABASE_URL` — your Supabase project's URL
+  - `VITE_SUPABASE_ANON_KEY` — your Supabase project's anon key
 
-## Supabase setup
+2. Install dependencies and start the dev server:
+```bash
+npm install
+npm run dev
+```
 
-1. Create a Supabase project at https://app.supabase.com and copy your project URL and anon key.
-2. Copy `.env.example` to `.env` and fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-3. For server-side operations that need elevated privileges, set `SUPABASE_SERVICE_KEY` in your deployment environment (do NOT commit it).
-4. Deploy: set the same env vars in your hosting provider (Vercel/Netlify) under project settings.
+3. Open the app (Vite shows the URL, e.g. http://localhost:5173) and test flows.
 
-The app reads `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (Vite exposes variables prefixed with `VITE_`).
+## Supabase setup (migrations & seeding)
+There are SQL migrations in `supabase/migrations/`:
+- `20241210000001_initial_schema.sql` — core schema
+- `20241210000002_rls_policies.sql` — RLS policies and helpful triggers
 
-  # User Greeting
+You can run these via Supabase Dashboard -> SQL Editor or using the Supabase CLI:
+```bash
+npm i -g supabase
+supabase login
+supabase link --project-ref gvqxcdcphggotggfvqbe
+supabase db push
+```
 
-  This is a code bundle for User Greeting. The original project is available at https://www.figma.com/design/seOfvjNHV9hwgz67wzwVUK/User-Greeting.
+The `scripts/seed.sql` file contains sample data you can paste in the SQL editor (replace `<PARENT_UUID>` and `<STAFF_UUID>` with actual Auth user IDs if needed).
 
-  ## Running the code
+## Running tests & QA
+1. Run the dev server and login using a parent or staff account (create users in the Supabase Dashboard -> Authentication -> Users if you prefer).
+2. Verify that parent users only see their children and staff sees all.
+3. Verify `attendance_logs` are created on check-in/out, `approved_persons` are visible, and messaging works.
 
-  Run `npm i` to install the dependencies.
+## Contributing
+PRs and issues are welcome. Keep secrets out of commits (don’t commit `.env` or service keys).
 
-  Run `npm run dev` to start the development server.
+## Files & important locations
+- `src/` — frontend code
+- `src/services/` — supabase client & service methods
+- `supabase/migrations/` — migrations (schema + RLS)
+- `scripts/seed.sql` — sample data
+- `docs/` — report, docs and setup guides
+
+## License
+This repository is licensed under the MIT License — see the `LICENSE` file.
+
   
