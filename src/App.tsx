@@ -9,6 +9,7 @@ import { ProfileTab } from './components/ProfileTab';
 import { ChatModal } from './components/ChatModal';
 import { InstallPWA } from './components/InstallPWA';
 import { Language } from './translations/translations';
+import { Toaster } from 'sonner';
 
 type UserRole = 'parent' | 'staff';
 type AppState = 'login' | 'onboarding' | 'main';
@@ -90,6 +91,8 @@ export default function App() {
   // Show main app
   return (
     <div className={`min-h-screen transition-colors ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+      <Toaster position="top-center" richColors />
+      
       {/* Header */}
       <header className={`border-b sticky top-0 z-20 transition-colors ${
         darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'

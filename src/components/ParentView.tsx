@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, History, FileText } from 'lucide-react';
 import { ChildCard } from './ChildCard';
 import { ApprovedPersons } from './ApprovedPersons';
@@ -6,49 +6,148 @@ import { IncidentList } from './IncidentList';
 import { PickupLogView } from './PickupLogView';
 import { DailyInfoView } from './DailyInfoView';
 import { WeeklyPlan } from './WeeklyPlan';
-import { mockChildren, mockApprovedPersons, mockIncidents, mockPickupLogs, mockDailyInfo } from '../data/mockData';
-import { Language, useTranslation } from '../translations/translations';
+import type { Language } from '../translations/translations';
+import { childrenService, incidentsService, attendanceService, dailyInfoService, approvedPersonsService, authService } from '../services/supabase';
+import type { Child, Incident, DailyInfo, PickupLog } from '../data/mockData';
 
 interface ParentViewProps {
   darkMode?: boolean;
   language?: Language;
 }
 
-export function ParentView({ darkMode = false, language = 'no' }: ParentViewProps) {
-  const [selectedChildId, setSelectedChildId] = useState<string>('child-1');
+export function ParentView({ darkMode: _darkMode = false, language: _language = 'no' }: ParentViewProps) {
+  const [selectedChildId, setSelectedChildId] = useState<string>('');
   const [showPickupRequest, setShowPickupRequest] = useState(false);
   const [showPickupForm, setShowPickupForm] = useState(false);
-  const [selectedPickupPerson, setSelectedPickupPerson] = useState('');
-  const [showChat, setShowChat] = useState(false);
+  const [_selectedPickupPerson, _setSelectedPickupPerson] = useState('');
+  const [_showChat, _setShowChat] = useState(false);
   const [requiresApproval, setRequiresApproval] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'overview' | 'pickup' | 'activities'>('overview');
   
-  // Track pickup status for each child
-  const [childPickupStatus, setChildPickupStatus] = useState<{
-    [key: string]: { status: 'pending' | 'approved' | null; person?: string }
-  }>(() => {
-    const statusMap: { [key: string]: { status: 'pending' | 'approved' | null; person?: string } } = {};
-    mockChildren.forEach(child => {
-      statusMap[child.id] = {
-        status: child.pickupStatus || null,
-        person: child.pickupPerson
-      };
-    });
-    return statusMap;
-  });
+  // Supabase data
+  const [myChildren, setMyChildren] = useState<Child[]>([]);
+  const [childIncidents, setChildIncidents] = useState<Incident[]>([]);
+  const [pickupLogs, setPickupLogs] = useState<PickupLog[]>([]);
+  const [dailyInfo, setDailyInfo] = useState<DailyInfo[]>([]);
+  const [approvedPersons, setApprovedPersons] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  const t = useTranslation(language);
+  // Track pickup status for each child
+  const [_childPickupStatus, setChildPickupStatus] = useState<{
+    [key: string]: { status: 'pending' | 'approved' | null; person?: string }
+  }>({});
 
-  // For demo: parent only sees their own children
-  const myChildren = mockChildren.filter(child => 
-    child.id === 'child-1' || child.id === 'child-5' || child.id === 'child-7'
-  );
+  // Load data from Supabase
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        if (!user) return;
+
+        // Get children for current parent
+        const children = await childrenService.getChildren(user.id);
+        const mappedChildren: Child[] = children.map(c => ({
+          id: c.id,
+          name: c.name,
+          status: c.status === 'present' ? 'present' : 'home',
+          group: c.group || '',
+          checkInTime: c.check_in_time || undefined,
+          checkOutTime: c.check_out_time || undefined,
+          notes: c.notes || undefined,
+          allergies: c.allergies || undefined,
+          pickupStatus: null,
+        }));
+        setMyChildren(mappedChildren);
+        
+        if (mappedChildren.length > 0 && !selectedChildId) {
+          setSelectedChildId(mappedChildren[0].id);
+        }
+
+        // Get daily info
+        const info = await dailyInfoService.getDailyInfo();
+        const mappedInfo: DailyInfo[] = info.map(i => ({
+          id: i.id,
+          type: i.type,
+          title: i.title,
+          description: i.description,
+          date: i.date,
+          targetGroup: i.target_group || undefined,
+        }));
+        setDailyInfo(mappedInfo);
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Load child-specific data when selection changes
+  useEffect(() => {
+    if (!selectedChildId) return;
+
+    const loadChildData = async () => {
+      try {
+        // Get incidents for selected child
+        const incidents = await incidentsService.getIncidents(selectedChildId);
+        const mappedIncidents: Incident[] = (incidents as any[]).map((i: any) => ({
+          id: i.id,
+          childId: selectedChildId,
+          type: i.type,
+          title: i.title || '',
+          description: i.description,
+          severity: i.severity,
+          actionTaken: i.action_taken || '',
+          reportedBy: i.reported_by || '',
+          reportedAt: i.reported_at || i.created_at,
+          timestamp: i.created_at,
+          notifiedParent: i.notified_parents,
+          notifiedParents: i.notified_parents,
+        }));
+        setChildIncidents(mappedIncidents);
+
+        // Get attendance logs
+        const logs = await attendanceService.getAttendanceLogs(selectedChildId, 10);
+        const mappedLogs: PickupLog[] = (logs as any[]).map((log: any) => ({
+          id: log.id,
+          childId: selectedChildId,
+          childName: myChildren.find(c => c.id === selectedChildId)?.name || '',
+          action: log.action === 'check_in' ? 'Levert' : 'Hentet',
+          timestamp: log.created_at,
+          verifiedBy: log.verified_by || '',
+          notes: log.notes || undefined,
+          pickedUpBy: log.action === 'check_out' ? (log.verified_by || '') : undefined,
+          pickedUpAt: log.action === 'check_out' ? log.created_at : undefined,
+          checkedOutTime: log.action === 'check_out' ? log.created_at : undefined,
+        }));
+        setPickupLogs(mappedLogs);
+
+        // Get approved persons for selected child
+        const persons = await approvedPersonsService.getApprovedPersons(selectedChildId);
+        setApprovedPersons(persons);
+      } catch (error) {
+        console.error('Failed to load child data:', error);
+      }
+    };
+
+    loadChildData();
+  }, [selectedChildId, myChildren]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Laster inn...</p>
+        </div>
+      </div>
+    );
+  }
 
   const selectedChild = myChildren.find(child => child.id === selectedChildId);
-  
-  // Filter data for selected child
-  const childIncidents = selectedChild ? mockIncidents.filter(i => i.childId === selectedChild.id) : [];
-  const childPickupLogs = selectedChild ? mockPickupLogs.filter(l => l.childId === selectedChild.id) : [];
   const childGroup = selectedChild?.group;
 
   const handleSendPickupRequest = (person: string) => {
@@ -63,10 +162,6 @@ export function ParentView({ darkMode = false, language = 'no' }: ParentViewProp
       setShowPickupForm(false);
       setShowPickupRequest(true);
     }
-  };
-
-  const getChildPickupInfo = (childId: string) => {
-    return childPickupStatus[childId] || { status: null };
   };
 
   return (
@@ -177,7 +272,7 @@ export function ParentView({ darkMode = false, language = 'no' }: ParentViewProp
                   <Calendar className="w-5 h-5 text-purple-600" />
                   <h3 className="text-gray-900">I dag i barnehagen</h3>
                 </div>
-                <DailyInfoView info={mockDailyInfo} targetGroup={childGroup} />
+                <DailyInfoView info={dailyInfo} targetGroup={childGroup} />
               </section>
 
               {/* Attendance Today */}
@@ -226,20 +321,20 @@ export function ParentView({ darkMode = false, language = 'no' }: ParentViewProp
                 <h3 className="mb-4 text-gray-900">Hvem henter?</h3>
                 <div className="bg-white rounded-2xl border border-gray-200 p-6">
                   <div className="grid grid-cols-2 gap-3 mb-6">
-                    {mockApprovedPersons
-                      .filter(p => p.childId === selectedChild.id && p.status === 'approved')
+                    {approvedPersons
+                      .filter((p: any) => p.child_id === selectedChild.id && p.status === 'approved')
                       .slice(0, 4)
-                      .map(person => (
+                      .map((person: any) => (
                         <div 
                           key={person.id} 
                           className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-purple-50 hover:border-purple-200 border border-gray-100 transition-colors cursor-pointer"
                         >
                           <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0 text-white shadow-sm">
-                            {person.name.charAt(0)}
+                            {person.full_name.charAt(0)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-gray-900 truncate font-medium">{person.name}</p>
-                            <p className="text-xs text-gray-500">{person.relation}</p>
+                            <p className="text-sm text-gray-900 truncate font-medium">{person.full_name}</p>
+                            <p className="text-xs text-gray-500">{person.relationship}</p>
                           </div>
                         </div>
                       ))}
@@ -364,7 +459,7 @@ export function ParentView({ darkMode = false, language = 'no' }: ParentViewProp
                   <History className="w-5 h-5 text-gray-600" />
                   <h3 className="text-gray-900">Hentingshistorikk</h3>
                 </div>
-                <PickupLogView logs={childPickupLogs} />
+                <PickupLogView logs={pickupLogs} />
               </section>
             </>
           )}
@@ -428,21 +523,21 @@ export function ParentView({ darkMode = false, language = 'no' }: ParentViewProp
             </div>
             
             <div className="space-y-3 mb-6">
-              {mockApprovedPersons
-                .filter(p => p.childId === selectedChild.id && p.status === 'approved')
-                .map(person => (
+              {approvedPersons
+                .filter((p: any) => p.child_id === selectedChild.id && p.status === 'approved')
+                .map((person: any) => (
                   <button
                     key={person.id}
-                    onClick={() => handleSendPickupRequest(person.name)}
+                    onClick={() => handleSendPickupRequest(person.full_name)}
                     className="w-full p-4 bg-gray-50 hover:bg-purple-50 hover:border-purple-300 border-2 border-gray-200 rounded-xl transition-all text-left group"
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 bg-gradient-to-br from-purple-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0 text-white shadow-sm text-xl">
-                        {person.name.charAt(0)}
+                        {person.full_name.charAt(0)}
                       </div>
                       <div className="flex-1">
-                        <p className="text-gray-900 font-medium group-hover:text-purple-600 transition-colors">{person.name}</p>
-                        <p className="text-sm text-gray-500">{person.relation}</p>
+                        <p className="text-gray-900 font-medium group-hover:text-purple-600 transition-colors">{person.full_name}</p>
+                        <p className="text-sm text-gray-500">{person.relationship}</p>
                       </div>
                       <svg className="w-5 h-5 text-gray-400 group-hover:text-purple-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

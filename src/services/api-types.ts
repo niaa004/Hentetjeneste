@@ -128,8 +128,8 @@ export interface Database {
         Row: {
           id: string
           child_id: string
-          name: string
-          relation: string
+          full_name: string
+          relationship: string
           phone: string
           can_pick_up: boolean
           photo_url: string | null
@@ -140,8 +140,8 @@ export interface Database {
         Insert: {
           id?: string
           child_id: string
-          name: string
-          relation: string
+          full_name: string
+          relationship: string
           phone: string
           can_pick_up?: boolean
           photo_url?: string | null
@@ -152,8 +152,8 @@ export interface Database {
         Update: {
           id?: string
           child_id?: string
-          name?: string
-          relation?: string
+          full_name?: string
+          relationship?: string
           phone?: string
           can_pick_up?: boolean
           photo_url?: string | null
@@ -279,3 +279,4 @@ export interface Database {
     }
   }
 }
+
