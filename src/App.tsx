@@ -97,21 +97,21 @@ export default function App() {
       <header className={`border-b sticky top-0 z-20 transition-colors ${
         darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
       }`}>
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 py-2 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 ${
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className={`w-8 h-8 sm:w-10 sm:h-10 ${
                 currentRole === 'parent' 
                   ? 'bg-gradient-to-br from-purple-500 to-purple-600' 
                   : 'bg-gradient-to-br from-blue-500 to-blue-600'
-              } rounded-xl flex items-center justify-center shadow-sm`}>
-                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              } rounded-xl flex items-center justify-center shadow-sm flex-shrink-0`}>
+                <svg className="w-4 h-4 sm:w-6 sm:h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                 </svg>
               </div>
-              <div>
-                <h1 className={darkMode ? 'text-white' : 'text-gray-900'}>Hentetjeneste</h1>
-                <p className={`text-sm ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
+              <div className="min-w-0">
+                <h1 className={`text-lg sm:text-xl font-semibold truncate ${darkMode ? 'text-white' : 'text-gray-900'}`}>Hentetjeneste</h1>
+                <p className={`text-xs sm:text-sm truncate ${darkMode ? 'text-gray-300' : 'text-gray-500'}`}>
                   {currentRole === 'parent' ? 'Forelder-modus' : 'Ansatt-modus'}
                 </p>
               </div>

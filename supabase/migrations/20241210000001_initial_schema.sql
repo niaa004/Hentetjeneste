@@ -177,26 +177,31 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Apply trigger to all tables with updated_at
+DROP TRIGGER IF EXISTS set_updated_at ON public.profiles;
 CREATE TRIGGER set_updated_at
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS set_updated_at ON public.children;
 CREATE TRIGGER set_updated_at
   BEFORE UPDATE ON public.children
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS set_updated_at ON public.approved_persons;
 CREATE TRIGGER set_updated_at
   BEFORE UPDATE ON public.approved_persons
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS set_updated_at ON public.incidents;
 CREATE TRIGGER set_updated_at
   BEFORE UPDATE ON public.incidents
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS set_updated_at ON public.daily_info;
 CREATE TRIGGER set_updated_at
   BEFORE UPDATE ON public.daily_info
   FOR EACH ROW

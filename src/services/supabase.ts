@@ -2,7 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './api-types';
 
 // Supabase client configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
+// Get these from your Supabase project settings: https://supabase.com/dashboard/project/gvqxcdcphggotggfvqbe/settings/api
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://gvqxcdcphggotggfvqbe.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {

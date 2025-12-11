@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Plus, Check, Clock, UserPlus, Ban, Shield } from 'lucide-react';
 import { ConsentModal } from './ConsentModal';
 import { mockApprovedPersons } from '../data/mockData';
+import type { ApprovedPerson } from '../data/mockData';
 
 interface ApprovedPersonsProps {
   childId: string;
+  approvedPersons?: ApprovedPerson[]; // Optional prop from parent
 }
 
-export function ApprovedPersons({ childId }: ApprovedPersonsProps) {
+export function ApprovedPersons({ childId, approvedPersons: propApprovedPersons }: ApprovedPersonsProps) {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [blockedPersons, setBlockedPersons] = useState<string[]>([]); // NEW: Track blocked persons
@@ -17,7 +19,10 @@ export function ApprovedPersons({ childId }: ApprovedPersonsProps) {
     phone: '',
   });
 
-  const persons = mockApprovedPersons.filter(p => p.childId === childId);
+  // Use prop data if available, otherwise fallback to mock data
+  const persons = propApprovedPersons && propApprovedPersons.length > 0
+    ? propApprovedPersons.filter(p => p.childId === childId)
+    : mockApprovedPersons.filter(p => p.childId === childId);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
